@@ -1,0 +1,86 @@
+{{> layout}}
+
+<div class="container mt-5">
+  <div class="page_Content">
+    <div class="col-md-12 addForm">
+      <h2 class="text-center">Update Book</h2>
+     
+    <form id="updateBookForm" action="/update-book/{{book.bookid}}" method="POST">
+  <div class="mb-3">
+    <label for="book_code" class="form-label">Book Code</label>
+    <input type="text" class="form-control" id="book_code" value="{{book.book_code}}"name="book_code" required>
+  </div>
+  <div class="mb-3">
+    <label for="book_name" class="form-label">Book Name</label>
+    <input type="text" class="form-control" id="book_name" name="book_name" value="{{book.book_name}}" required>
+  </div>
+     <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="active" name="active" {{#if book.active}}checked{{/if}}>
+          <label class="form-check-label" for="active">Active</label>
+        </div>
+  <button type="submit" class="btn btn-success">Update Book</button>
+</form>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Get the book ID from the URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookId = urlParams.get('id');
+Console.log("---->",bookId);
+    if (bookId) {
+      try {
+        // Fetch book details from the server
+        const response = await fetch(`/update-book/${bookId}`);
+        if (!response.ok) throw new Error('Failed to fetch book details');
+        
+        const book = await response.json();
+
+        // Populate form fields with book details
+        document.getElementById('book_code').value = book.book_code;
+        document.getElementById('book_name').value = book.book_name;
+        document.getElementById('active').checked = book.active === 1;
+      } catch (error) {
+        console.error("Error fetching book details:", error);
+        alert("Failed to load book details.");
+      }
+    }
+  });
+
+  document.getElementById("updateBookForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(document.getElementById("updateBookForm"));
+    const jsonData = {};
+    for (const [key, value] of formData) {
+      jsonData[key] = value;
+    }
+
+    // Handle checkbox value
+    jsonData.active = formData.has('active') ? 1 : 0;
+
+    const bookId = document.getElementById("updateBookForm").action.split('/').pop(); // Extract bookId from form action URL
+
+    try {
+      const response = await fetch(`/update-book/${bookId}`, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(jsonData),
+      });
+
+      const result = await response.json();
+      if (result.message) {
+        alert(result.message);
+        window.location.href = "/books"; // Redirect to books page
+      } else if (result.error) {
+        alert(result.error);
+      }
+    } catch (error) {
+      console.error("Error updating book:", error);
+      alert("An error occurred while updating the book.");
+    }
+  });
+</script>

@@ -1,0 +1,261 @@
+{{> layout}}
+
+<div class="container mt-5">
+  <div class="page_Content">
+    <div class="col-md-12" id="addCheterbtn">
+      <h2 class="text-center">Edit Book</h2>
+      <form id="addBookForm" method="POST" enctype="multipart/form-data">
+       
+        <div class="field_boxes">
+          <div class="col-6">
+            <label for="book_code" class="form-label">Book Code</label>
+            <input type="text" class="form-control" id="book_code" name="book_code" value="{{book.book_code}}" required>
+          </div>
+          <div class="col-6">
+            <label for="book_name" class="form-label">Book Name</label>
+            <input type="text" class="form-control" id="book_name" name="book_name" value="{{book.book_name}}" required>
+          </div>
+          <div class="col-6">
+            <input type="checkbox" class="form-check-input" id="active" name="active" {{#if book.active}}checked{{/if}} required>
+            <label class="form-check-label" for="active" required>Active</label>
+          </div>
+      
+
+        </div>
+
+        <div id="chapterList" style="{{#if chapters.length}}display: block;{{else}}display: none;{{/if}}">
+        <hr>
+          <div class="row border-container">
+            <div class="col-2 mr-0"><span class="header_table">Sr#</span></div>
+            <div class="col-4 mr-0"><span class="header_table">Book Chapter</span></div>
+            <div class="col-5 mr-0"><span class="header_table">Chapter Name</span></div>
+            <div class="col-1"></div>
+          </div>
+        <hr>
+         
+          <!-- Existing chapter rows -->
+     {{#each chapters}}
+      <div class="row chapter-row mb-3">
+        <div class="col-md-2">
+          <input type="text" class="form-control" name="srno[]" required placeholder="Sr#" value="{{this.srno}}">
+        </div>
+        <div class="col-md-4">
+          <div class="midel_box">
+            <i class="fa fa-paperclip" id="paperclip"></i>
+            <div class="box">
+              <input type="file" name="files[]" data-index="{{@index}}"accept=".pdf" />
+              {{#if this.chapterpath}}
+                <span>Current file: <a href="/{{this.chapterpath}}" target="_blank">{{this.chapterpath}}</a></span>
+              {{else}}
+                <span>No file uploaded</span>
+              {{/if}}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-5">
+          <input type="text" class="form-control" name="chaptername[]" required placeholder="Chapter Name" value="{{this.chaptername}}">
+        </div>
+        <div class="col-md-1">
+          <div class="crose_icon">
+            <i class="fa fa-close remove-row"></i>
+          </div>
+        </div>
+        <div class="divider"></div>
+      </div>
+{{/each}}
+
+
+        </div>
+       <div id="addBookChapterContainer" class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-success editbtn" id="add_book_Chepter">
+            <i class="fas fa-plus"></i> Add Book Chapter
+          </button>
+        </div>
+        <div class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-primary me-2 " id="saveButton">
+            <i class="fas fa-save"></i> Update Book
+          </button>
+          <button type="button" class="btn btn-danger me-2" id="cancelBtn">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </div>
+   
+
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', (event) => {
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    cancelBtn.addEventListener('click', () => {
+        window.location.href = '/books';
+    });
+});
+  document.addEventListener('DOMContentLoaded', () => {
+  const authToken = localStorage.getItem('authToken');
+ if (!authToken) {
+    window.location.href = '/login'; // Redirect to login if no auth token is found
+ }
+  const pathname = window.location.pathname;
+  const bookid = pathname.split('/').pop();
+
+  // Event listener for adding a new book chapter
+  document.getElementById("add_book_Chepter").addEventListener("click", () => {
+    const chapterList = document.getElementById("chapterList");
+    chapterList.style.display = 'block'; // Show the chapter list
+    addMoreRows(); // Add a new row when the button is clicked
+  });
+
+  // Event listener for removing a row
+  document.getElementById("chapterList").addEventListener("click", (event) => {
+    if (event.target.classList.contains('remove-row')) {
+      event.target.closest('.chapter-row').remove();
+      // If there are no rows left, hide the chapterList and remove the class
+      if (document.getElementById("chapterList").querySelectorAll('.chapter-row').length === 0) {
+        document.getElementById("chapterList").style.display = 'none';
+        removeMoveableClass();
+      }
+    }
+  });
+
+  // Event listener for saving the form
+document.getElementById("saveButton").addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    const saveButton = document.getElementById("saveButton");
+    saveButton.disabled = true; // Disable the button
+    saveButton.textContent = "Saving..."; // Change button text
+
+    // Create FormData object
+    const formData = new FormData(document.getElementById("addBookForm"));
+    formData.append('book_id', bookid);
+
+    // Collect chapter data including file names and existing paths
+    const chapters = Array.from(document.querySelectorAll('.chapter-row')).map(row => {
+        const fileInput = row.querySelector('input[name="files[]"]');
+        const existingPath = row.querySelector('span') ? row.querySelector('span').textContent.replace('Current file: ', '') : '';
+
+        return {
+            srno: row.querySelector('input[name="srno[]"]').value,
+            chaptername: row.querySelector('input[name="chaptername[]"]').value,
+            chapterpath: fileInput.files[0] ? fileInput.files[0].name : existingPath // Preserve old path if no new file
+        };
+    });
+
+    // Append chapters JSON to FormData
+    formData.append('chapters', JSON.stringify(chapters));
+
+    try {
+        const response = await fetch("/update-book", {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.message) {
+            alert(result.message);
+            // Uncomment to redirect to the books page
+            window.location.href = "/books";
+        } else if (result.error) {
+            alert(result.error);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while updating the book.");
+    } finally {
+        saveButton.disabled = false; // Re-enable the button after response
+        saveButton.textContent = "Save"; // Reset button text
+    }
+});
+  document.getElementById("cancelBtn").addEventListener("click", () => {
+    // Optional: handle cancel button logic
+  });
+
+  // Function to add existing rows
+  function addExistingRow(chapter) {
+    const chapterList = document.getElementById('chapterList');
+    
+    const newRow = document.createElement('div');
+    newRow.classList.add('row', 'chapter-row', 'mb-3');
+    newRow.innerHTML = `
+      <div class="col-md-2">
+        <input type="text" class="form-control" name="srno[]" required placeholder="Sr#" value="${chapter.srno}">
+      </div>
+      <div class="col-md-4">
+        <div class="midel_box">
+          <i class="fa fa-paperclip" id="paperclip"></i>
+          <div class="box">
+            <input type="file" name="files[]" accept=".pdf" />
+            ${chapter.chapterpath ? `<span>Current file: <a href="/${chapter.chapterpath}" target="_blank">${chapter.chapterpath}</a></span>` : '<span>No file uploaded</span>'}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <input type="text" class="form-control" name="chaptername[]" required placeholder="Chapter Name" value="${chapter.chaptername}">
+      </div>
+      <div class="col-md-1">
+        <div class="crose_icon">
+          <i class="fa fa-close remove-row"></i>
+        </div>
+      </div>
+      <div class="divider"></div>
+    `;
+
+    chapterList.appendChild(newRow);
+
+    // Add the moveable_btn class when a row is added
+    addMoveableClass();
+  }
+
+  // Function to add more rows
+  function addMoreRows() {
+    const chapterList = document.getElementById('chapterList');
+    
+    const newRow = document.createElement('div');
+    newRow.classList.add('row', 'chapter-row', 'mb-3');
+    newRow.innerHTML = `
+      <div class="col-md-2">
+        <input type="text" class="form-control" name="srno[]" required placeholder="Sr#">
+      </div>
+      <div class="col-md-4">
+        <div class="midel_box">
+          <i class="fa fa-paperclip" id="paperclip"></i>
+          <div class="box">
+            <input type="file" name="files[]" accept=".pdf" required/>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <input type="text" class="form-control" name="chaptername[]" required placeholder="Chapter Name">
+      </div>
+      <div class="col-md-1">
+        <div class="crose_icon">
+          <i class="fa fa-close remove-row"></i>
+        </div>
+      </div>
+      <div class="divider"></div>
+    `;
+
+    chapterList.appendChild(newRow);
+
+    // Add the moveable_btn class when a row is added
+    addMoveableClass();
+  }
+
+  // Function to add the moveable_btn class
+  function addMoveableClass() {
+    const addBookChapterButton = document.getElementById('add_book_Chepter');
+    addBookChapterButton.classList.add('moveable_btn');
+  }
+
+  // Function to remove the moveable_btn class
+  function removeMoveableClass() {
+    const addBookChapterButton = document.getElementById('add_book_Chepter');
+    addBookChapterButton.classList.remove('moveable_btn');
+  }
+});
+
+</script>

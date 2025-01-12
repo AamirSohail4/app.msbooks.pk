@@ -1,0 +1,58 @@
+{{> layout}}
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 addForm">
+      <h2 class="text-center">Login</h2>
+      <p id="error-message" style="color:red"></p> 
+      <form id="loginForm">
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Login</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+  
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    console.log("Email sent:", email); // Log the email being sent
+
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const result = await response.json();
+
+    if (result.message && result.token) {
+      // Save the token and userId in local storage
+      localStorage.setItem("authToken", result.token);
+      localStorage.setItem("userId", result.userId); // Save the userId
+
+      // Optionally, display a success message or redirect the user
+      alert(result.message);
+      window.location.href = "/books"; // Redirect to the books page
+    } else if (result.error) {
+      // Display the error message
+      document.getElementById("error-message").textContent = result.error;
+    }
+  });
+</script>
+
+
+

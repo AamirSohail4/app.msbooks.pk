@@ -1,0 +1,178 @@
+{{> layout}}
+
+<div class="container mt-5">
+  <div class="page_Content">
+    <div class="col-md-12" id="addCheterbtn">
+      <h2 class="text-center">Add New Book</h2>
+      <form id="addBookForm" method="POST" enctype="multipart/form-data">
+        <div class="field_boxes">
+          <div class="col-6">
+            <label for="book_code" class="form-label">Book Code</label>
+            <input type="text" class="form-control" id="book_code" name="book_code" required>
+          </div>
+          <div class="col-6">
+            <label for="book_name" class="form-label">Book Name</label>
+            <input type="text" class="form-control" id="book_name" name="book_name" accept=".pdf" required>
+          </div>
+          <div class="col-6">
+            <input type="checkbox" class="form-check-input" id="active" name="active">
+            <label class="form-check-label" for="active">Active</label>
+          </div>
+        </div>
+
+        <div id="chapterList" style="display: none;">
+        <hr>
+          <div class="row border-container">
+            <div class="col-2 mr-0"><span class="header_table">Sr#</span></div>
+            <div class="col-4 mr-0"><span class="header_table">Book Chapter</span></div>
+            <div class="col-5 mr-0"><span class="header_table">Chapter Name</span></div>
+            <div class="col-1"></div>
+          </div>
+        <hr>
+         
+          <!-- Rows will be appended here -->
+        </div>
+           <div id="addBookChapterContainer" class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-success" id="add_book_Chepter">
+            <i class="fas fa-plus"></i> Add Book Chapter
+          </button>
+        </div>
+          <div class="d-flex justify-content-end mt-3">
+          <button type="button" class="btn btn-primary me-2" id="saveButton">
+            <i class="fas fa-save"></i> Save
+          </button>
+          <button type="button" class="btn btn-danger me-2" id="cancelBtn">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      
+
+      
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+  const authToken = localStorage.getItem('authToken');
+ const userId = localStorage.getItem('userId');
+ if (!authToken) {
+    window.location.href = '/login'; 
+ }
+  const bookId = "{{bookid}}"; 
+ console.log("authToken bb",userId);
+ 
+  document.getElementById("add_book_Chepter").addEventListener("click", () => {
+    const chapterList = document.getElementById("chapterList");
+    chapterList.style.display = 'block'; 
+    addMoreRows(); 
+  });
+
+  
+  document.getElementById("chapterList").addEventListener("click", (event) => {
+    if (event.target.classList.contains('remove-row')) {
+      event.target.closest('.chapter-row').remove();
+     
+      if (chapterList.querySelectorAll('.chapter-row').length === 0) {
+        chapterList.style.display = 'none';
+        removeMoveableClass();
+      }
+    }
+  });
+
+  // Event listener for saving the form
+  // Event listener for saving the form
+document.getElementById("saveButton").addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    const saveButton = document.getElementById("saveButton");
+    saveButton.disabled = true; // Disable the button
+    saveButton.textContent = "Saving..."; // Change button text
+
+    const formData = new FormData(document.getElementById("addBookForm"));
+    formData.append('user_id', userId);
+  
+    try {
+        const response = await fetch("/addBook-Chapter", {
+            method: "POST",
+            body: formData,
+        });
+
+        const result = await response.json();
+
+        if (result.message) {
+            alert(result.message);
+            window.location.href = "/books"; // Redirect to the books page
+        } else if (result.error) {
+            alert(result.error);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while adding the book.");
+    } finally {
+        saveButton.disabled = false; // Re-enable the button after response
+        saveButton.textContent = "Save"; // Reset button text
+    }
+});
+
+  
+  document.getElementById("cancelBtn").addEventListener("click", () => {
+   
+  });
+});
+
+// Function to add more rows
+function addMoreRows() {
+  const chapterList = document.getElementById('chapterList');
+
+  const newRow = document.createElement('div');
+  newRow.classList.add('row', 'chapter-row', 'mb-3');
+  newRow.innerHTML = `
+    <div class="col-md-2">
+      <input type="text" class="form-control" name="srno[]" required placeholder="Sr#">
+    </div>
+    <div class="col-md-4">
+      <div class="midel_box">
+        <i class="fa fa-paperclip" id="paperclip"></i>
+        <div class="box">
+          <input type="file" name="files[]" accept=".pdf" />
+        </div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <input type="text" class="form-control" name="chaptername[]" required placeholder="Chapter Name">
+    </div>
+    <div class="col-md-1">
+      <div class="crose_icon">
+        <i class="fa fa-close remove-row"></i>
+      </div>
+    </div>
+    <div class="divider"></div>
+  `;
+
+  chapterList.appendChild(newRow);
+
+  // Add the moveable_btn class when a row is added
+  addMoveableClass();
+}
+
+// Function to add the moveable_btn class
+function addMoveableClass() {
+  const addBookChapterButton = document.getElementById('add_book_Chepter');
+  addBookChapterButton.classList.add('moveable_btn');
+}
+
+// Function to remove the moveable_btn class
+function removeMoveableClass() {
+  const addBookChapterButton = document.getElementById('add_book_Chepter');
+  addBookChapterButton.classList.remove('moveable_btn');
+}
+document.addEventListener('DOMContentLoaded', (event) => {
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    cancelBtn.addEventListener('click', () => {
+        window.location.href = '/books';
+    });
+});
+</script>
+

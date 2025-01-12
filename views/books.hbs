@@ -1,0 +1,99 @@
+{{> layout}}
+<div class="container mt-5">
+  <div class="page_Content">
+    <div class="header_links mb-3">
+      <h2>Books List</h2>
+      <a href="/add-book" class="btn btn-success">
+        <i class="fas fa-plus"></i>
+        Add Book
+      </a>
+    </div>
+
+    <table class="table table-striped table-bordered" id="booksTable">
+      <thead>
+        <tr>
+          <th style="width: 5%;">Sr</th>
+          <th style="width: 20%;">Book Code</th>
+          <th style="width: 25%;">Book Name</th>
+          <th style="width: 10%;">Active?</th>
+          <th style="width: 20%;">Option</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each books}}
+          <tr>
+            <td>{{this.indexPlusOne}}</td> <!-- Use the precomputed index -->
+            <td>{{this.book_code}}</td>
+            <td>{{this.book_name}}</td>
+            <td class="text-center">
+              {{#if this.active}}
+                <i class="fa fa-check-circle text-success"></i>
+              {{else}}
+                <i class="fa fa-times-circle text-danger"></i>
+              {{/if}}
+            </td>
+            <td class="text-center">
+              <a href="/update-book/{{this.id}}" class="btn btn-sm btn-info" title="Edit">
+                <i class="fa fa-edit"></i>
+              </a>
+              <button class="btn btn-sm btn-danger delete-book" data-code="{{this.id}}" title="Delete">
+                <i class="fa fa-trash"></i>
+              </button>
+              <p class="message"></p> <!-- Use a class instead of an ID for multiple messages -->
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// JavaScript to handle delete operations
+document.addEventListener('DOMContentLoaded', () => {
+  const authToken = localStorage.getItem('authToken');
+  const userId = localStorage.getItem('userId');
+  
+  if (!authToken) {
+    window.location.href = '/login'; 
+  }
+
+  document.querySelectorAll('.delete-book').forEach(button => {
+    button.addEventListener('click', function() {
+      const bookId = this.getAttribute('data-code');
+      const bookRow = this.closest('tr'); // Assuming the button is inside a <tr> element
+
+      // Confirmation before deleting
+      if (confirm('Are you sure you want to delete this book?')) {
+        fetch(`/delete-book/${bookId}`, { 
+          method: 'DELETE', 
+          headers: {
+            'Authorization': `Bearer ${authToken}` // Include token in the request
+          }
+        })
+        .then(response => {
+          if (response.ok) {
+            // Optimistic UI update: remove the book from the table
+            bookRow.remove(); // Remove the row from the DOM
+            alert('Book deleted successfully.');
+          } else if (response.status === 401) {
+            // Handle unauthorized access
+            alert('You are not authorized to perform this action. Redirecting to login...');
+            window.location.href = '/login';
+          } else {
+            alert('Error deleting book. Please try again.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        });
+      }
+    });
+  });
+});
+</script>
+
+
+
+

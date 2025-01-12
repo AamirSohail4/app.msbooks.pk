@@ -1,0 +1,21 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/knboyeul/app.msbooks.pk"
+PassengerBaseURI "/"
+PassengerNodejs "/home/knboyeul/nodevenv/app.msbooks.pk/20/bin/node"
+PassengerAppType node
+PassengerStartupFile app.js
+<VirtualHost *:80>
+    ServerName app.msbooks.pk
+    DocumentRoot /home/knboyeul/app.msbooks.pk
+
+    # Passenger configuration
+    PassengerAppRoot /home/knboyeul/app.msbooks.pk
+    PassengerBaseURI /
+    PassengerNodejs /home/knboyeul/nodevenv/app.msbooks.pk/20/bin/node
+    PassengerAppType node
+    PassengerStartupFile app.js
+
+    # Error logs
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
