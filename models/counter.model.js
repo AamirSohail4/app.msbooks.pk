@@ -43,10 +43,22 @@ class Counter {
     }
   }
 
+  static async checkIfUserExists(user_id) {
+    try {
+      const query = `SELECT id FROM users WHERE id = ?`;
+      const [rows] = await db.promise().query(query, [user_id]);
+
+      // Return true if user exists, otherwise false
+      return rows.length > 0;
+    } catch (error) {
+      console.error("Error in checkIfUserExists:", error);
+      throw error;
+    }
+  }
   static async creatingCounter(data) {
     try {
-      // Query to check if the intUser_id already exists
-      const checkQuery = `SELECT counter FROM screen_captchar_counter WHERE user_id= ?`;
+      // Query to check if the user_id already exists in screen_captchar_counter
+      const checkQuery = `SELECT * FROM screen_captchar_counter WHERE user_id = ?`;
       const [checkResult] = await db
         .promise()
         .query(checkQuery, [data.user_id]);
@@ -54,7 +66,7 @@ class Counter {
       let result;
 
       if (checkResult.length > 0) {
-        // If intUser_id exists, increment the counter
+        // If user_id exists, increment the counter
         const updateQuery = `
           UPDATE screen_captchar_counter
           SET counter = counter + 1
@@ -66,33 +78,84 @@ class Counter {
         const [updatedRecord] = await db
           .promise()
           .query(updatedRecordQuery, [data.user_id]);
-        result = updatedRecord[0];
+        result = updatedRecord[0]; // Updated record after counter increment
       } else {
-        // If intUser_id does not exist, insert a new record with counter = 1
+        // If user_id does not exist, insert a new record with counter = 1
         const insertQuery = `
           INSERT INTO screen_captchar_counter (user_id, counter)
-          VALUES (?, ?)`;
+          VALUES (?, 1)`; // Set counter to 1 for new user_id
         const [insertResult] = await db
           .promise()
-          .query(insertQuery, [data.user_id, 1]);
+          .query(insertQuery, [data.user_id]);
 
-        // Return the newly inserted record
-        result = {
-          //   id: insertResult.insertId,
-          user_id: data.user_id,
-          counter: 1,
-        };
+        // Fetch the newly inserted record
+        const selectNewRecordQuery = `SELECT * FROM screen_captchar_counter WHERE id = ?`;
+        const [newRecord] = await db
+          .promise()
+          .query(selectNewRecordQuery, [insertResult.insertId]);
+        result = newRecord[0]; // Newly created record with counter set to 1
       }
 
-      // Log the counter update
+      // Log the counter update (you can implement your logging logic here)
       await this.createLog(data.user_id);
 
-      return result; // Return the counter record
+      return result; // Return the counter record (either updated or newly created)
     } catch (error) {
       console.error("Error in creatingCounter:", error);
       throw error;
     }
   }
+
+  // static async creatingCounter(data) {
+  //   try {
+  //     // Query to check if the intUser_id already exists
+  //     const checkQuery = `SELECT counter FROM screen_captchar_counter WHERE user_id= ?`;
+  //     const [checkResult] = await db
+  //       .promise()
+  //       .query(checkQuery, [data.user_id]);
+
+  //     let result;
+
+  //     if (checkResult.length > 0) {
+  //       // If intUser_id exists, increment the counter
+  //       const updateQuery = `
+  //         UPDATE screen_captchar_counter
+  //         SET counter = counter + 1
+  //         WHERE user_id = ?`;
+  //       await db.promise().query(updateQuery, [data.user_id]);
+
+  //       // Return the updated record
+  //       const updatedRecordQuery = `SELECT * FROM screen_captchar_counter WHERE user_id = ?`;
+  //       const [updatedRecord] = await db
+  //         .promise()
+  //         .query(updatedRecordQuery, [data.user_id]);
+  //       result = updatedRecord[0];
+  //     } else {
+  //       // If intUser_id does not exist, insert a new record with counter = 1
+  //       const insertQuery = `
+  //         INSERT INTO screen_captchar_counter (user_id, counter)
+  //         VALUES (?, ?)`;
+  //       const [insertResult] = await db
+  //         .promise()
+  //         .query(insertQuery, [data.user_id, 1]);
+
+  //       // Return the newly inserted record
+  //       result = {
+  //         //   id: insertResult.insertId,
+  //         user_id: data.user_id,
+  //         counter: 1,
+  //       };
+  //     }
+
+  //     // Log the counter update
+  //     await this.createLog(data.user_id);
+
+  //     return result; // Return the counter record
+  //   } catch (error) {
+  //     console.error("Error in creatingCounter:", error);
+  //     throw error;
+  //   }
+  // }
 
   //Get All Logs
   static async getAllUserLogs() {
@@ -133,7 +196,7 @@ class Counter {
     try {
       const [rows] = await db.promise().query(query, [strKey]);
 
-      // Return the value or null if the key does not exist
+      // Return the value if the key exists, otherwise return null
       return rows.length > 0 ? rows[0].strValue : null;
     } catch (error) {
       console.error("Error fetching value by key:", error);

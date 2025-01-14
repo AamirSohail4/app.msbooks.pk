@@ -32,9 +32,9 @@ exports.getAllCounters = async (req, res) => {
 exports.getSingleCounter = async (req, res) => {
   const { intUserID } = req.params;
 
-  // Validate if intUser_id is provided
+  // Validate if intUserID is provided
   if (!intUserID) {
-    return res.status(200).json({
+    return res.status(400).json({
       success: false,
       message: "User ID is required.",
     });
@@ -44,12 +44,11 @@ exports.getSingleCounter = async (req, res) => {
     // Call the model to get the counter by user ID
     const counter = await Counter.getCounterByUserID(intUserID);
 
-    const counters = parseInt(counter.counter, 10);
-
     if (counter) {
+      const counters = parseInt(counter.counter, 10); // Safely parse the counter value
       return res.status(200).json({
         success: true,
-        message: "success",
+        message: "Success",
         data: {
           intCounter: counters,
         },
@@ -58,7 +57,7 @@ exports.getSingleCounter = async (req, res) => {
       // No counter data found for the user
       return res.status(404).json({
         success: false,
-        message: `No counter found for user ${intUserID}.`,
+        message: `No counter found for user ID ${intUserID}.`,
       });
     }
   } catch (error) {
@@ -74,33 +73,33 @@ exports.getSingleCounter = async (req, res) => {
 exports.createNewCounter = async (req, res) => {
   console.log("Request Body:", req.body);
 
-  const { user_id } = req.body;
+  const { intUserID } = req.body;
 
-  if (!user_id) {
+  // Validate if intUserID is provided
+  if (!intUserID) {
     return res.status(400).json({
       success: false,
-      message: "user_id is required.",
+      message: "intUserID is required.",
     });
   }
 
   try {
-    const data = { user_id };
-
-    const userRecord = await Counter.creatingCounter(data);
+    // Create or update the counter using the model
+    const userRecord = await Counter.creatingCounter({ user_id: intUserID });
 
     return res.status(200).json({
       success: true,
       message: "Counter updated successfully.",
       data: {
-        intID: userRecord.id,
+        intID: userRecord.id || null,
         intUserID: userRecord.user_id,
         strCounter: userRecord.counter,
-        dtCreatedAt: userRecord.created_at,
-        dtUpdatedAt: userRecord.updated_at,
+        dtCreatedAt: userRecord.created_at || null,
+        dtUpdatedAt: userRecord.updated_at || null,
       },
     });
   } catch (error) {
-    console.error("Error while creating/updating user:", error);
+    console.error("Error while creating/updating counter:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to create or update counter due to a server error.",
@@ -225,12 +224,12 @@ exports.createKeyValue = async (req, res) => {
     }
 
     // Check if the key already exists
-    const existingKeyQuery = await Counter.existingKey(strKey);
+    const existingValue = await Counter.existingKey(strKey);
 
-    if (existingKeyQuery) {
+    if (existingValue !== null) {
       return res.status(409).json({
         success: false,
-        message: "strKey already exists. Please use a unique key.",
+        message: `strKey already exists with value: ${existingValue}`,
       });
     }
 
@@ -239,7 +238,8 @@ exports.createKeyValue = async (req, res) => {
       strKey,
       strValue,
     });
-    console.log("That is  newRecord", newRecord);
+    console.log("That is newRecord", newRecord);
+
     return res.status(201).json({
       success: true,
       message: "success",
@@ -258,6 +258,54 @@ exports.createKeyValue = async (req, res) => {
     });
   }
 };
+
+// exports.createKeyValue = async (req, res) => {
+//   console.log("Request Body:", req.body);
+
+//   try {
+//     const { strKey, strValue } = req.body;
+
+//     if (!strKey || !strValue) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "strKey and strValue are required.",
+//       });
+//     }
+
+//     // Check if the key already exists
+//     const existingKeyQuery = await Counter.existingKey(strKey);
+
+//     if (existingKeyQuery) {
+//       return res.status(409).json({
+//         success: false,
+//         message: "strKey already exists. Please use a unique key.",
+//       });
+//     }
+
+//     // Create the key-value pair
+//     const newRecord = await Counter.creatingKeyValue({
+//       strKey,
+//       strValue,
+//     });
+//     console.log("That is  newRecord", newRecord);
+//     return res.status(201).json({
+//       success: true,
+//       message: "success",
+//       data: {
+//         intID: newRecord.id,
+//         strKey: newRecord.strKey,
+//         strValue: newRecord.strValue,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error in createKeyValue controller:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "An error occurred while creating the key-value pair.",
+//       error: error.message,
+//     });
+//   }
+// };
 
 //Rest Counter
 exports.ResetCounter = async (req, res) => {
